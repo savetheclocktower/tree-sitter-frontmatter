@@ -1,0 +1,72 @@
+{
+  "name": "frontmatter",
+  "rules": {
+    "source_file": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "frontmatter"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "remainder"
+        }
+      ]
+    },
+    "frontmatter_body": {
+      "type": "REPEAT1",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_frontmatter_body_line"
+      }
+    },
+    "frontmatter": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_frontmatter_delimiter"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "frontmatter_body"
+          },
+          "named": true,
+          "value": "text"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_frontmatter_delimiter"
+        }
+      ]
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "_frontmatter_delimiter"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_frontmatter_body_line"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "remainder"
+    }
+  ],
+  "inline": [],
+  "supertypes": []
+}
+
