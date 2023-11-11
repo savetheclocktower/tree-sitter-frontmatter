@@ -1,32 +1,46 @@
 module.exports = grammar({
   name: 'frontmatter',
 
-  extras: ($) => [/\s/],
+  extras: ($) => [/[\s\n]/],
 
   externals: ($) => [
-    $._frontmatter_delimiter,
-    $._frontmatter_body_line,
-    $.remainder
+    $._front_matter_delimiter,
+    $._front_matter_body_line,
+    $.remainder,
+    $._eof
   ],
 
   rules: {
     source_file: $ => (
       seq(
-        $.frontmatter,
-        $.remainder
+        optional($.front_matter),
+        choice(
+          $.remainder,
+          alias(
+            $.unsuccessful_front_matter_reinterpreted_as_remainder,
+            $.remainder
+          )
+        )
       )
     ),
 
-    frontmatter_body: ($) => (
-      // repeat1(/.*?\n/)
-      repeat1($._frontmatter_body_line)
+    front_matter_body: ($) => (
+      repeat1($._front_matter_body_line)
     ),
 
-    frontmatter: ($) => (
+    unsuccessful_front_matter_reinterpreted_as_remainder: ($) => (
       seq(
-        $._frontmatter_delimiter,
-        alias($.frontmatter_body, $.text),
-        $._frontmatter_delimiter
+        $._front_matter_delimiter,
+        repeat1($._front_matter_body_line),
+        $._eof
+      )
+    ),
+
+    front_matter: ($) => (
+      seq(
+        alias($._front_matter_delimiter, "---"),
+        alias($.front_matter_body, $.text),
+        alias($._front_matter_delimiter, "---")
       )
     ),
 

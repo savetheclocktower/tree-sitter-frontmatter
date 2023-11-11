@@ -1,10 +1,12 @@
 #include <tree_sitter/parser.h>
 #include <wctype.h>
+// #include <stdio.h>
 
 enum TokenType {
   FRONTMATTER_DELIMITER,
   FRONTMATTER_BODY,
-  REMAINDER_BODY
+  REMAINDER_BODY,
+  EOF_MARKER
 };
 
 typedef struct {
@@ -32,19 +34,22 @@ static void deserialize(Scanner *scanner, const char *buffer, unsigned length) {
 }
 
 static bool scan_frontmatter_start(Scanner *scanner, TSLexer *lexer) {
+  if (lexer->eof(lexer)) {
+    return false;
+  }
   for (int i = 0; i < 3; i++) {
     if (lexer->lookahead == '-') {
-      lexer->advance(lexer, false);
+      advance(lexer);
     } else {
       return false;
     }
     if (iswspace(lexer->lookahead)) {
       lexer->mark_end(lexer);
       while (iswspace(lexer->lookahead) && lexer->lookahead != '\n') {
-        skip(lexer);
+        advance(lexer);
       }
       if (lexer->lookahead == '\n') {
-        skip(lexer);
+        advance(lexer);
         lexer->result_symbol = FRONTMATTER_DELIMITER;
         scanner->started_frontmatter = true;
         return true;
@@ -55,20 +60,26 @@ static bool scan_frontmatter_start(Scanner *scanner, TSLexer *lexer) {
 }
 
 static bool scan_frontmatter_contents(Scanner *scanner, TSLexer *lexer) {
+  bool didAdvance = false;
+  // Skip whitespace until we reach the first non-whitespace content — then
+  // switch to advancing until we reach a new line.
   while (lexer->get_column(lexer) != 0 && !lexer->eof(lexer)) {
-    if (iswspace(lexer->lookahead)) { skip(lexer); }
-    else { advance(lexer); }
-  }
-
-  if (lexer->eof(lexer)) {
-    lexer->mark_end(lexer);
-    skip(lexer);
-    return true;
+    if (iswspace(lexer->lookahead)) {
+      if (didAdvance) { advance(lexer); }
+      else { skip(lexer); }
+    } else {
+      didAdvance = true;
+      advance(lexer);
+    }
   }
 
   if (lexer->lookahead == '\n') {
+    // If we reach this branch, either (a) we started in the middle of a line
+    // and have parsed its remainder, or (b) we just parsed an empty (or
+    // whitespace-only) line.
+    advance(lexer);
     lexer->mark_end(lexer);
-    skip(lexer);
+    lexer->result_symbol = FRONTMATTER_BODY;
     return true;
   }
 
@@ -97,22 +108,36 @@ static bool scan_remainder_contents(Scanner *scanner, TSLexer *lexer) {
     skip(lexer);
   }
 
+  // If we've reached this point, the hard part is over. Everything else in the
+  // file is now part of the remainder content. We use the scanner for this
+  // because it's the only good way to detect EOF.
   while (!lexer->eof(lexer)) {
     advance(lexer);
   }
+
   lexer->result_symbol = REMAINDER_BODY;
   lexer->mark_end(lexer);
   return true;
 }
 
 static bool scan(Scanner *scanner, TSLexer *lexer, const bool *valid_symbols) {
-  if (valid_symbols[FRONTMATTER_DELIMITER] && !scanner->started_frontmatter && lexer->get_column(lexer) == 0) {
-    return scan_frontmatter_start(scanner, lexer);
+  // printf("SCAN: Column %i, char '%c'\n", lexer->get_column(lexer), lexer->lookahead);
+  if (valid_symbols[EOF_MARKER] && lexer->eof(lexer)) {
+    lexer->result_symbol = EOF_MARKER;
+    lexer->mark_end(lexer);
+    return true;
   }
+
+  if (valid_symbols[FRONTMATTER_DELIMITER] && !scanner->started_frontmatter && lexer->get_column(lexer) == 0) {
+    bool result = scan_frontmatter_start(scanner, lexer);
+    if (result) return true;
+  }
+
   if (valid_symbols[FRONTMATTER_BODY] && scanner->started_frontmatter) {
     return scan_frontmatter_contents(scanner, lexer);
   }
-  if (valid_symbols[REMAINDER_BODY] && scanner->ended_frontmatter) {
+
+  if (valid_symbols[REMAINDER_BODY] && (scanner->ended_frontmatter || !scanner->started_frontmatter)) {
     return scan_remainder_contents(scanner, lexer);
   }
   return false;
@@ -131,10 +156,12 @@ void tree_sitter_frontmatter_external_scanner_destroy(void *payload) {
 }
 
 void tree_sitter_frontmatter_external_scanner_reset(void *p) {}
+
 unsigned tree_sitter_frontmatter_external_scanner_serialize(void *payload, char *state) {
   Scanner *scanner = (Scanner *)payload;
   return serialize(scanner, state);
 }
+
 void tree_sitter_frontmatter_external_scanner_deserialize(void *payload, const char *state, unsigned length) {
   Scanner *scanner = (Scanner *)payload;
   deserialize(scanner, state, length);

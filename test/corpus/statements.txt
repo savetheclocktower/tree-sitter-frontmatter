@@ -8,7 +8,7 @@ foo: "bar";
 ---|||
 
 (source_file
-  (frontmatter (text))
+  (front_matter (text))
   (remainder)
 )
 
@@ -16,10 +16,13 @@ foo: "bar";
 Frontmatter with `---` inside its contents
 ==========================================|||
 ---
+# This front matter block contains two different red herrings for the end of
+# the block — one valid YAML and one not.
 foo: "bar";
   baz: '---';
 ---x
 ---
+
 # Lorem ipsum dolor sit amet
 
 ---
@@ -29,7 +32,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
 ---|||
 
 (source_file
-  (frontmatter (text))
+  (front_matter (text))
   (remainder)
 )
 
@@ -39,6 +42,7 @@ Frontmatter with extra `---` in remainder
 =========================================|||
 ---
 foo: "bar";
+
 ---
 # Lorem ipsum dolor sit amet
 
@@ -49,7 +53,7 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
 ---|||
 
 (source_file
-  (frontmatter (text))
+  (front_matter (text))
   (remainder)
 )
 
@@ -58,11 +62,40 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
 Malformed frontmatter that does not terminate
 =============================================|||
 ---
+# The ending token is not valid because it is not followed by a newline, so
+# this front matter never actually closes, and should be reinterpreted as
+# remainder text once we reach EOF.
 foo: "bar";
+baz: "thud";
 ---.
 ---|||
 
 (source_file
-  (frontmatter (text))
-  (MISSING remainder)
+  (remainder)
+)
+
+=============================================|||
+Malformed frontmatter that does not terminate 2
+=============================================|||
+---
+This front matter never terminates, so this text should be
+reinterpreted as remainder text once we reach EOF.
+
+---|||
+
+(source_file
+  (remainder)
+)
+
+
+=============================================|||
+Complete lack of frontmatter
+=============================================|||
+# Lorem ipsum
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+---|||
+
+(source_file
+  (remainder)
 )

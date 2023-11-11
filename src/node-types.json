@@ -1,6 +1,6 @@
 [
   {
-    "type": "frontmatter",
+    "type": "front_matter",
     "named": true,
     "fields": {},
     "children": {
@@ -15,6 +15,11 @@
     }
   },
   {
+    "type": "remainder",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "source_file",
     "named": true,
     "fields": {},
@@ -23,7 +28,7 @@
       "required": true,
       "types": [
         {
-          "type": "frontmatter",
+          "type": "front_matter",
           "named": true
         },
         {
@@ -39,7 +44,7 @@
     "fields": {}
   },
   {
-    "type": "remainder",
-    "named": true
+    "type": "---",
+    "named": false
   }
 ]
